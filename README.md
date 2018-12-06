@@ -1,5 +1,83 @@
 # CarND-Controls-MPC
-Self-Driving Car Engineer Nanodegree Program
+*By Aravind Pillarisetti*
+
+## The Model
+The kinematic model is used to model the vehicle dynamics. The model has the following actuator inputs
+```
+steer - steering angle (also called delta)
+throttle - acceleration/brake of the vehicle (also called a)
+```
+
+The model maintains the following states
+```
+x - the x position of the vehicle in car co-ordinates
+y - the y position of the vehicle in car co-ordinates
+psi - the orientation of the vehicle in radians
+v - the velocity of the vehicle
+```
+
+The update equations of the state for a elapsed time of dT ate
+
+```
+x[t + 1] = x[t] + v[t]*cos(psi[t])*dT
+y[t + 1] = y[t] + v[t]*sin(psi[t])*dT
+psi[t+1] = psi[t] + v[t]*delta[t]*dT/Lf
+v[t + 1] = v[t] + a[t]*dT;
+```
+
+In addition, there are 2 errors - cross track error (cte) and orientation error (epsi).
+The errors are also captured as states. The update equations for the error states are
+```
+cte[t+1] = cte[t] + v[t]*sin(epsi[t])*dT
+where
+cte[t] = f(x[t]) - y[t]
+and
+epsi[t+1] = epsi[t] + v[t]*delta[t]*dT/Lf
+where
+epsi[t] = psi[t] - psides[t]
+```
+
+## Cost function and optimization
+The objective is to find an optimal steering angle and acceleration such that it minimizes the cost function of states.
+As per the lecture, the cost function consists of following parts
+1. Squares of cte and epsi. 
+2. Squares of the actuator inputs - steering angle and throttle
+3. Squares of difference between consecutive actuator inputs
+Each squares need to be appropriately multiplied by a factor/weight to get best performance.
+I started with just the factor of 500 from the lecture but this led to the simulator vehicle wobbling and crashing.
+I experimented with various weights and arrived at the best after multiple iterations. The iterations also helped me
+understand how each of the cost function contributors impact the MPC performance.
+My final weights are reflected in the code (in the FG_eval class operator() function)
+
+## N & dT
+The number of points (N) and elapsed time (dT) define the prediction horizon (T). As such, N & dT impacts the MPC performance. 
+It is recommended that N and T should be maximized for best performance. At the same time, a much larger N slows down the
+solver performance. I started with N=10 and dT=0.1 to give a 1 second horizon. This worked ok when driving at slower speeds.
+However, at higher speeds, I had to increase it to N=20 and dT=0.05 to give the same 1 second horizon.
+My N and dT are represented as globals in MPC.cpp
+
+## Waypoints and polynomials
+The points provided by the simulator to the main are transformed to points in the car co-ordinate system.
+To handle latency, the points are updated before the transformation to the car system.
+
+With the waypoints, a 3rd order polynomial is used to compute the co-efficients.
+The coefficients are used to calculate the cte and epsi states.
+
+This code is reflected in main.cpp onMessage function.
+
+## Model predictive control
+With the computed cte, and epsi as well as the transformed points (with latency), we set the states
+
+```
+Eigen::VectorXd mpcStates(6);
+mpcStates << 0.0, 0.0, 0.0, v, cte, epsi;
+```
+
+and with the coefficients are used to update the MPC
+```
+// Do model predictive control and get vars
+mpcVars = mpc.Solve(mpcStates, coeffs);
+```
 
 ---
 
