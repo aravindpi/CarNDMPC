@@ -58,7 +58,18 @@ My N and dT are represented as globals in MPC.cpp
 
 ## Waypoints and polynomials
 The points provided by the simulator to the main are transformed to points in the car co-ordinate system.
+Also, the velocity is converted from mph to m/s (SI).
+
 To handle latency, the points are updated before the transformation to the car system.
+I used a latency of 150 ms based on review suggestion. Because of the latency all the waypoints were updated. The calculation was based on the following update
+
+```
+px  += v*cos(psi)*latency;
+py  += v*sin(psi)*latency;
+psi -= v*latency*delta/2.67;
+v   += accel*latency;
+```
+
 
 With the waypoints, a 3rd order polynomial is used to compute the co-efficients.
 The coefficients are used to calculate the cte and epsi states.
@@ -66,6 +77,7 @@ The coefficients are used to calculate the cte and epsi states.
 This code is reflected in main.cpp onMessage function.
 
 ## Model predictive control
+
 With the computed cte, and epsi as well as the transformed points (with latency), we set the states
 
 ```

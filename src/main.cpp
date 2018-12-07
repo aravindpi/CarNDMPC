@@ -94,12 +94,15 @@ int main() {
 	  double delta = j[1]["steering_angle"];
 	  double accel = j[1]["throttle"];
 
-	  //Account for latency
-	  px  += v*cos(psi)*0.1;
-	  py  += v*sin(psi)*0.1;
-	  psi -= v*0.1*delta/2.67;
-	  v   += accel*0.1;
-	    
+	  // convert v to m/s: Based on suggestion from review
+	  v *= 0.44704;
+	  
+	  //Account for latency: Now 150 ms based on review
+	  px  += v*cos(psi)*0.15;
+	  py  += v*sin(psi)*0.15;
+	  psi -= v*0.15*delta/2.67;
+	  v   += accel*0.15;
+
 	  // transform waypoints from car's perspective and get waypoints
 	  Eigen::VectorXd trans_x_eig = Eigen::VectorXd(ptsx.size());
 	  Eigen::VectorXd trans_y_eig = Eigen::VectorXd(ptsx.size());
@@ -124,14 +127,6 @@ int main() {
 	  // Create states
 	  Eigen::VectorXd mpcStates(6);
 	  mpcStates << 0.0, 0.0, 0.0, v, cte, epsi;
-
-	  // Account for delay of 0.1 sec (100 millisecs)
-	  /*mpcStates[0] += v*0.1;
-	  mpcStates[1] += 0;
-	  mpcStates[2] -= v*0.1*delta/2.67;
-	  mpcStates[3] += accel*0.1;
-	  mpcStates[4] += v*sin(epsi)*0.1;
-	  mpcStates[5] -= v*atan(coeffs[1])*0.1/2.67;*/
 
 	  // Do model predictive control and get vars
 	  auto mpcVars = mpc.Solve(mpcStates, coeffs);

@@ -22,7 +22,7 @@ double dt = 0.05;
 const double Lf = 2.67;
 
 // Maximum speed I would like the car to go
-double ref_v = 60;
+double ref_v = 60*0.44704;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -48,26 +48,6 @@ class FG_eval {
     // `fg` a vector of the cost constraints,
     // `vars` is a vector of variable values (state & actuators)
 
-    /*const double x = N*dt*0.9;
-    double num = pow(coeffs[1] + 2*coeffs[2]*x + 3*coeffs[3]*CppAD::pow(x,2), 3);
-    double den = abs( 2*coeffs[2] + 6*coeffs[3]*x );
-    const double radius = sqrt(num)/den;
-
-    double ref_v = 0;
-    if (radius > 300) {
-      ref_v = 120*0.447;
-    } else if (radius > 25) {
-      ref_v = 70*0.447 +  (radius -25)*0.447*(120-70)/(300-25);
-    } else {
-      ref_v = 70*0.447;
-    }
-
-    if ( (radius < 100) &&
-	 (CppAD::abs(vars[cte_start]) < 1) &&
-	 (CppAD::abs(vars[epsi_start]) <  10*M_PI/180.0) ) {
-      ref_v *= 1.25;
-      }*/
-    
     // The cost is stored is the first element of `fg`.
     // Any additions to the cost should be added to `fg[0]`.
     fg[0] = 0;
@@ -75,24 +55,23 @@ class FG_eval {
     // Reference State Cost
     // Note - tuned here to get solution working
     for(size_t t=0; t < N; t++) {
-      fg[0] += 1000*CppAD::pow(vars[cte_start + t], 2); 
-      fg[0] += 1000*CppAD::pow(vars[epsi_start + t], 2); 
+      fg[0] += 50*CppAD::pow(vars[cte_start + t], 2); // reduce weight to ensure MPC stability 
+      fg[0] += 1000*CppAD::pow(vars[epsi_start + t], 2); // Keep weight high to ensure MPC stability
       fg[0] += CppAD::pow(vars[v_start + t]-(ref_v), 2);
     }
 
     // Minimise the use of actuators
     // Note - tuned here to get solution working
     for(size_t t=0; t < N-1; t++) {
-      fg[0] += 50*CppAD::pow(vars[delta_start + t], 2);
-      fg[0] += 50*CppAD::pow(vars[a_start + t], 2);
-      //fg[0] += 700*CppAD::pow(vars[v_start + t]*vars[delta_start+t], 2);
+      fg[0] += 10*CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += 10*CppAD::pow(vars[a_start + t], 2);
     }
 
     // Minimize the value gap between sequential actuations
     // Note - tuned here to get solution working
     for(size_t t=0; t < N-2; t++) {
-      fg[0] += 200000 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-      fg[0] += 5000*CppAD::pow(vars[a_start + t +1] - vars[a_start +t], 2);
+      fg[0] += 30000 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] += 1000 * CppAD::pow(vars[a_start + t +1] - vars[a_start +t], 2);
     }
 
 
